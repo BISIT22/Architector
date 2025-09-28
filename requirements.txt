@@ -1,0 +1,35 @@
+# Core dependencies
+langchain==0.1.0
+langchain-community==0.0.10
+ollama==0.1.7
+python-dotenv==1.0.0
+
+# Image processing
+Pillow==10.2.0
+opencv-python==4.9.0.80
+numpy==1.24.3
+
+# Database
+sqlalchemy==2.0.25
+alembic==1.13.1
+
+# Web interface
+streamlit==1.29.0
+streamlit-extras==0.3.6
+
+# Blender integration
+bpy==3.6.0  # Note: This might need special installation
+fake-bpy-module-3.6==20240121  # For development
+
+# Utils
+pydantic==2.5.3
+loguru==0.7.2
+tqdm==4.66.1
+pytest==7.4.4
+black==23.12.1
+flake8==7.0.0
+
+# ML/AI utilities
+transformers==4.36.2
+torch==2.1.2
+torchvision==0.16.2
