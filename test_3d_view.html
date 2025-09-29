@@ -1,0 +1,178 @@
+
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { margin: 0; overflow: hidden; }
+                #info {
+                    position: absolute;
+                    top: 10px;
+                    left: 10px;
+                    color: white;
+                    font-family: Arial;
+                    background: rgba(0,0,0,0.5);
+                    padding: 10px;
+                    border-radius: 5px;
+                }
+            </style>
+        </head>
+        <body>
+            <div id="info">
+                🏗️ 3D Модель | Используйте мышь для вращения<br>
+                Колесико - масштаб | ПКМ - перемещение
+            </div>
+            
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+            
+            <script>
+                // Создаем сцену
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(0xf0f0f0);
+                
+                // Камера
+                const camera = new THREE.PerspectiveCamera(
+                    75, 800/600, 0.1, 1000
+                );
+                camera.position.set(20, 20, 20);
+                camera.lookAt(0, 0, 0);
+                
+                // Рендерер
+                const renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(800, 600);
+                renderer.shadowMap.enabled = true;
+                document.body.appendChild(renderer.domElement);
+                
+                // Контролы для управления камерой
+                const controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+                
+                // Освещение
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                scene.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.4);
+                directionalLight.position.set(10, 20, 10);
+                directionalLight.castShadow = true;
+                scene.add(directionalLight);
+                
+                // Сетка для пола
+                const gridHelper = new THREE.GridHelper(50, 50, 0x888888, 0xcccccc);
+                scene.add(gridHelper);
+                
+                // Оси координат
+                const axesHelper = new THREE.AxesHelper(10);
+                scene.add(axesHelper);
+                
+                // Материалы
+                const materials = {
+                    'бетон': new THREE.MeshLambertMaterial({ color: 0x808080 }),
+                    'стекло': new THREE.MeshPhysicalMaterial({ 
+                        color: 0x88ccff, 
+                        transparent: true, 
+                        opacity: 0.6,
+                        roughness: 0.1,
+                        metalness: 0.1
+                    }),
+                    'дерево': new THREE.MeshLambertMaterial({ color: 0x8B4513 }),
+                    'металл': new THREE.MeshStandardMaterial({ 
+                        color: 0xaaaaaa,
+                        metalness: 0.8,
+                        roughness: 0.2
+                    }),
+                    'кирпич': new THREE.MeshLambertMaterial({ color: 0xB22222 }),
+                    'default': new THREE.MeshNormalMaterial()
+                };
+                
+                // Функция создания примитивов
+                function createPrimitive(component) {
+                    let geometry;
+                    const type = component.type || 'cube';
+                    const scale = component.scale || [1, 1, 1];
+                    
+                    switch(type.toLowerCase()) {
+                        case 'cube':
+                        case 'box':
+                            geometry = new THREE.BoxGeometry(scale[0], scale[1], scale[2]);
+                            break;
+                        case 'sphere':
+                            geometry = new THREE.SphereGeometry(scale[0], 32, 16);
+                            break;
+                        case 'cylinder':
+                            geometry = new THREE.CylinderGeometry(scale[0], scale[0], scale[1], 32);
+                            break;
+                        case 'cone':
+                            geometry = new THREE.ConeGeometry(scale[0], scale[1], 32);
+                            break;
+                        case 'plane':
+                            geometry = new THREE.PlaneGeometry(scale[0], scale[1]);
+                            break;
+                        default:
+                            geometry = new THREE.BoxGeometry(scale[0], scale[1], scale[2]);
+                    }
+                    
+                    const materialName = component.material || 'default';
+                    const material = materials[materialName] || materials['default'];
+                    
+                    const mesh = new THREE.Mesh(geometry, material);
+                    
+                    // Позиционирование
+                    const position = component.position || [0, 0, 0];
+                    mesh.position.set(position[0], position[1], position[2]);
+                    
+                    // Вращение
+                    const rotation = component.rotation || [0, 0, 0];
+                    mesh.rotation.set(
+                        rotation[0] * Math.PI / 180,
+                        rotation[1] * Math.PI / 180,
+                        rotation[2] * Math.PI / 180
+                    );
+                    
+                    mesh.castShadow = true;
+                    mesh.receiveShadow = true;
+                    
+                    return mesh;
+                }
+                
+                // Добавляем компоненты из инструкций
+                const components = [{"name": "Foundation", "type": "cube", "position": [0, 0.5, 0], "scale": [15, 1, 15], "material": "\u0431\u0435\u0442\u043e\u043d"}, {"name": "First Floor", "type": "cube", "position": [0, 3, 0], "scale": [12, 5, 12], "material": "\u0441\u0442\u0435\u043a\u043b\u043e"}, {"name": "Second Floor", "type": "cube", "position": [0, 8, 0], "scale": [10, 4, 10], "material": "\u0441\u0442\u0435\u043a\u043b\u043e"}, {"name": "Roof", "type": "cube", "position": [0, 11, 0], "scale": [11, 0.5, 11], "material": "\u0431\u0435\u0442\u043e\u043d"}];
+                
+                // Группа для всех объектов модели
+                const modelGroup = new THREE.Group();
+                
+                components.forEach(component => {
+                    try {
+                        const mesh = createPrimitive(component);
+                        modelGroup.add(mesh);
+                    } catch(e) {
+                        console.error('Ошибка создания компонента:', e);
+                    }
+                });
+                
+                scene.add(modelGroup);
+                
+                // Центрируем модель
+                const box = new THREE.Box3().setFromObject(modelGroup);
+                const center = box.getCenter(new THREE.Vector3());
+                modelGroup.position.sub(center);
+                
+                // Анимация
+                function animate() {
+                    requestAnimationFrame(animate);
+                    controls.update();
+                    renderer.render(scene, camera);
+                }
+                
+                animate();
+                
+                // Обработка изменения размера окна
+                window.addEventListener('resize', () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+            </script>
+        </body>
+        </html>
+        
