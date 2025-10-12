@@ -37,6 +37,7 @@ class DatabaseOperations:
         materials: Optional[List[str]] = None,
         dimensions: Optional[Dict] = None,
         image_path: Optional[str] = None,
+        image_thumbnail_path: Optional[str] = None,
         model_name: str = "gemma:2b",
         user_session_id: Optional[str] = None
     ) -> GenerationRequest:
@@ -50,6 +51,7 @@ class DatabaseOperations:
             materials=materials,
             dimensions=dimensions,
             image_path=image_path,
+            image_thumbnail_path=image_thumbnail_path,
             model_name=model_name,
             user_session_id=user_session_id
         )

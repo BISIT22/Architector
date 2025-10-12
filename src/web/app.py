@@ -24,6 +24,7 @@ from src.database.models import (
 from src.database.operations import DatabaseOperations, get_db_operations
 from src.visualization.web_3d_viewer import Web3DViewer
 from sqlalchemy.orm import Session
+from src.core.image_utils import save_and_create_thumbnail
 import uuid
 
 st.set_page_config(layout="wide", page_title="AI Architect", page_icon="🏗️")
@@ -148,17 +149,30 @@ def render_generation_page(db: Session, db_ops: DatabaseOperations):
             text_description = st.text_area("Опишите вашу идею", height=200, placeholder="Например: современный двухэтажный дом в стиле минимализм, с плоской крышей и панорамными окнами...")
             style = st.text_input("Архитектурный стиль", placeholder="Минимализм, Лофт, Хай-тек...")
             materials = st.text_input("Основные материалы", placeholder="Бетон, стекло, дерево...")
+            uploaded_file = st.file_uploader(
+                "Загрузите изображение для анализа (опционально)", 
+                type=["png", "jpg", "jpeg"]
+            )
             submit_button = st.form_submit_button(label="✨ Сгенерировать Инструкции")
 
-        if submit_button and text_description:
+        if submit_button and (text_description or uploaded_file):
+            image_path, thumbnail_path = None, None
+            if uploaded_file:
+                image_path, thumbnail_path = save_and_create_thumbnail(uploaded_file)
+                st.image(thumbnail_path, caption="Загруженное изображение", width=150)
+
             # Создаем запрос в БД
             try:
+                request_type = RequestType.IMAGE_ANALYSIS if uploaded_file else RequestType.TEXT_GENERATION
+                
                 request = db_ops.create_generation_request(
                     input_prompt=text_description,
-                    request_type=RequestType.TEXT_GENERATION,
+                    request_type=request_type,
                     style=style,
                     materials=materials.split(",") if materials else None,
-                    user_session_id=st.session_state.session_id
+                    user_session_id=st.session_state.session_id,
+                    image_path=image_path,
+                    image_thumbnail_path=thumbnail_path
                 )
                 
                 # Обновляем статус на "в обработке"
@@ -168,7 +182,8 @@ def render_generation_page(db: Session, db_ops: DatabaseOperations):
                 prompt = ArchitecturePrompt(
                     text_description=text_description,
                     style=style,
-                    materials=materials.split(",") if materials else None
+                    materials=materials.split(",") if materials else None,
+                    image_path=image_path
                 )
                 
                 # Анимация загрузки
@@ -205,7 +220,7 @@ def render_generation_page(db: Session, db_ops: DatabaseOperations):
                         error_message=str(e)
                     )
         elif submit_button:
-            st.warning("Пожалуйста, опишите вашу идею, чтобы AI мог начать работу.")
+            st.warning("Пожалуйста, опишите вашу идею или загрузите изображение, чтобы AI мог начать работу.")
 
     with col2:
         st.subheader("Результат Генерации")
@@ -354,8 +369,10 @@ def render_history_page(db_ops: DatabaseOperations):
         
         with st.expander(f"{status_icon} {req.input_prompt[:50]}... | {req.created_at.strftime('%Y-%m-%d %H:%M') if req.created_at else 'N/A'}"):
             col1, col2 = st.columns([2, 1])
-            
+
             with col1:
+                if req.image_thumbnail_path and Path(req.image_thumbnail_path).exists():
+                    st.image(req.image_thumbnail_path, width=100)
                 st.markdown("**Запрос:**")
                 st.text(req.input_prompt)
                 

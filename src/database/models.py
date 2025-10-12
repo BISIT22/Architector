@@ -39,6 +39,7 @@ class GenerationRequest(Base):
     materials = Column(JSON)  # Список материалов
     dimensions = Column(JSON)  # Размеры объекта
     image_path = Column(String(500))  # Путь к загруженному изображению
+    image_thumbnail_path = Column(String(500)) # Путь к превью изображения
     
     # Параметры генерации
     model_name = Column(String(100), default="gemma:2b")
